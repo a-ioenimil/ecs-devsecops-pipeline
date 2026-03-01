@@ -160,11 +160,11 @@ pipeline {
 
                         sh """
                             # Strip the 'https://' from the URL so we can inject the credentials
-                            REPO_DOMAIN_PATH=$(echo $DEPLOY_GIT_REPO | sed 's~https://~~')
-                            AUTH_REPO_URL="https://${GIT_USER}:${GIT_PAT}@${REPO_DOMAIN_PATH}"
+                            REPO_DOMAIN_PATH=\$(echo \${DEPLOY_GIT_REPO} | sed 's~https://~~')
+                            AUTH_REPO_URL="https://\${GIT_USER}:\${GIT_PAT}@\${REPO_DOMAIN_PATH}"
 
                             # Clone using the authenticated URL
-                            git clone $AUTH_REPO_URL deploy-manifests
+                            git clone \${AUTH_REPO_URL} deploy-manifests
                             cd deploy-manifests
                             
                             # READ from the template, substitute the placeholder, and GENERATE a fresh taskdef.json
@@ -189,10 +189,10 @@ pipeline {
                             Jenkins Job: ${env.BUILD_URL}
                             Docker Image: ${IMAGE_URI}"
                             
-                            git commit -m "\$COMMIT_MESSAGE" || echo "No changes to commit"
+                            git commit -m "\${COMMIT_MESSAGE}" || echo "No changes to commit"
                             
                             # Push directly to main using the authenticated URL
-                            git push $AUTH_REPO_URL main
+                            git push \${AUTH_REPO_URL} main
                         """
                     }
                 }
