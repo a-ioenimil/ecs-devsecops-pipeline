@@ -39,15 +39,14 @@ pipeline {
             steps {
                 script {
                     echo "Running SonarCloud SAST..."
-                    // Assumes SonarScanner is installed on Jenkins server and configured globally
-                    // The SONAR_TOKEN is injected via Jenkins credentials from the environment block
-                    // Using withSonarQubeEnv automatically consumes the injected token without exposing it
+                    def scannerHome = tool 'sonar-scanner-8'
+
                     withSonarQubeEnv('SonarCloud') { 
                         sh '''
-                            sonar-scanner \
+                            ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.organization=${SONAR_ORGANIZATION} \
-                            -Dsonar.sources=.
+                            -Dsonar.sources=/backend/src
                         '''
                     }
                 }
