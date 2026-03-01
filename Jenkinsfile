@@ -58,18 +58,13 @@ pipeline {
         stage('Quality Gauntlet: SCA (Trivy FS)') {
             steps {
                 script {
-                    echo "Installing Trivy CLI locally..."
-                    // 1. Ensure the bin directory exists, then download Trivy into it
-                    sh "mkdir -p ${WORKSPACE}/bin"
-                    sh "curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${WORKSPACE}/bin"
-                    
                     echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
-                    // 2. Run 1: Generate the SCA Report
-                    sh "${WORKSPACE}/bin/trivy fs --format json --output ${WORKSPACE}/sca-report.json ${WORKSPACE}/backend"
-                    
-                    // 3. Run 2: Enforce the Quality Gate
-                    def status = sh(script: "${WORKSPACE}/bin/trivy fs --exit-code 1 --severity HIGH,CRITICAL ${WORKSPACE}/backend", returnStatus: true)
-                    
+                    // Run 1: Generate the SCA report (mounts workspace so output lands in WORKSPACE)
+                    sh "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --format json --output /workspace/sca-report.json /workspace/backend"
+
+                    // Run 2: Enforce the Quality Gate
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace/backend", returnStatus: true)
+
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('Trivy SCA detected HIGH or CRITICAL vulnerabilities in your Python packages!')
@@ -78,7 +73,6 @@ pipeline {
             }
             post {
                 always {
-                    // Archive the SCA report for your lab deliverables
                     archiveArtifacts artifacts: 'sca-report.json', allowEmptyArchive: true
                 }
             }
