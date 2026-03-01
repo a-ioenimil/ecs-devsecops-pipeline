@@ -136,10 +136,16 @@ pipeline {
             steps {
                 script {
                     echo "Cloning Deployment Manifests Repository..."
-                    // Uses the gitUsernamePassword Jenkins credentials to authenticate
-                    withCredentials([gitUsernamePassword(credentialsId: 'deploy-git-credentials-id', gitToolName: 'Default')]) { 
+                    
+                    // Inject the GitHub Username and PAT into the shell environment securely
+                    withCredentials([usernamePassword(credentialsId: 'deploy-git-credentials-id', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PAT')]) { 
                         sh '''
-                            git clone ${DEPLOY_GIT_REPO} deploy-manifests
+                            # Strip the 'https://' from the URL so we can inject the credentials
+                            REPO_DOMAIN_PATH=$(echo $DEPLOY_GIT_REPO | sed 's~https://~~')
+                            AUTH_REPO_URL="https://${GIT_USER}:${GIT_PAT}@${REPO_DOMAIN_PATH}"
+
+                            # Clone using the authenticated URL
+                            git clone $AUTH_REPO_URL deploy-manifests
                             cd deploy-manifests
                             
                             # READ from the template, substitute the placeholder, and GENERATE a fresh taskdef.json
@@ -151,7 +157,9 @@ pipeline {
                             # Add both the template (if changed) and the newly generated taskdef.json
                             git add appspec.yaml taskdef.template.json taskdef.json
                             git commit -m "Deploy Build: ${BUILD_NUMBER}" || echo "No changes to commit"
-                            git push origin main
+                            
+                            # Push directly to main using the authenticated URL
+                            git push $AUTH_REPO_URL main
                         '''
                     }
                 }
