@@ -99,11 +99,11 @@ pipeline {
                     echo "Generating Trivy Report..."
                     // DooD: --volumes-from inherits both the workspace AND the docker.sock mount
                     // Run 1: Save the report (doesn't fail the build)
-                    sh "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} aquasec/trivy image --format json --output ${WORKSPACE}/trivy-report.json ${IMAGE_URI}"
+                    sh "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} aquasec/trivy image --ignorefile ${WORKSPACE}/backend/.trivyignore --format json --output ${WORKSPACE}/trivy-report.json ${IMAGE_URI}"
 
                     echo "Enforcing Trivy Quality Gate..."
                     // Run 2: Enforce the gate (fails the build if vulnerable)
-                    def status = sh(script: "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} aquasec/trivy image --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_URI}", returnStatus: true)
+                    def status = sh(script: "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} aquasec/trivy image --ignorefile ${WORKSPACE}/backend/.trivyignore --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_URI}", returnStatus: true)
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('Trivy detected HIGH or CRITICAL vulnerabilities in the image! Failing the pipeline.')

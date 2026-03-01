@@ -21,6 +21,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
+# Patch base-image CVEs: CVE-2026-23949 (jaraco.context via setuptools), CVE-2026-24049 (wheel)
+RUN pip install --no-cache-dir --upgrade "setuptools>=75.8.2" "wheel>=0.46.2" \
+    && rm -rf /root/.cache/pip
+
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 COPY --chown=appuser:appuser src ./src

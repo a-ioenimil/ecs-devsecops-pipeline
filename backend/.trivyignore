@@ -1,0 +1,5 @@
+# CVE-2026-0861 — glibc (libc6/libc-bin): Integer overflow in memalign
+# leading to heap corruption. No fix available in Debian 13.3.
+# Risk accepted: low exploitability in containerized FastAPI workload.
+# Reviewed: 2026-03-01
+CVE-2026-0861
