@@ -55,29 +55,27 @@ pipeline {
             }
         }
 
-        stage('Quality Gauntlet: SCA (OWASP Dependency Check)') {
+        stage('Quality Gauntlet: SCA (Trivy FS)') {
             steps {
                 script {
-                    echo "Running OWASP Dependency Check..."
+                    echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
                     
-                    // 1. Create the directory on the EC2 host before Docker runs
-                    sh "mkdir -p ${WORKSPACE}/reports"
+                    // Run 1: Generate the SCA Report (saves to workspace)
+                    sh "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --format json --output /workspace/sca-report.json /workspace/backend"
                     
-                    // 2. Grant open write permissions so the container can save the files
-                    sh "chmod 777 ${WORKSPACE}/reports"
-                    
-                    // 3. Direct mount the backend to /src, and reports to /report
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}/backend:/src -v ${WORKSPACE}/reports:/report owasp/dependency-check:latest --scan /src --format HTML --format JSON --out /report", returnStatus: true)
+                    // Run 2: Enforce the Quality Gate (fails build if vulnerable)
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace/backend", returnStatus: true)
                     
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
-                        error('OWASP Dependency-Check failed! Inspect reports/dependency-check-report.html')
+                        error('Trivy SCA detected HIGH or CRITICAL vulnerabilities in your Python packages!')
                     }
                 }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'reports/dependency-check-report.html', allowEmptyArchive: true
+                    // Archive the SCA report for your lab deliverables
+                    archiveArtifacts artifacts: 'sca-report.json', allowEmptyArchive: true
                 }
             }
         }
