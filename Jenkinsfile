@@ -59,8 +59,16 @@ pipeline {
             steps {
                 script {
                     echo "Running OWASP Dependency Check..."
-                    def status = sh(script: 'docker run --rm -v ${WORKSPACE}:/src owasp/dependency-check --scan /src --format HTML --format JSON --out /src/reports', returnStatus: true)
-                    // You could parse the JSON report to explicitly check for High/Critical if needed
+                    
+                    // 1. Create the directory on the EC2 host before Docker runs
+                    sh "mkdir -p ${WORKSPACE}/reports"
+                    
+                    // 2. Grant open write permissions so the container can save the files
+                    sh "chmod 777 ${WORKSPACE}/reports"
+                    
+                    // 3. Run the scan (targeting /src/backend and outputting to /src/reports)
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/src owasp/dependency-check --scan /src/backend --format HTML --format JSON --out /src/reports", returnStatus: true)
+                    
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('OWASP Dependency-Check failed! Inspect reports/dependency-check-report.html')
