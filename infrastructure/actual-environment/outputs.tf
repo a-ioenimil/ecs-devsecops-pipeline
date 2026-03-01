@@ -1,4 +1,17 @@
 # ==========================================
+# IAM Outputs
+# ==========================================
+output "ecs_task_execution_role_arn" {
+  description = "ARN of the ECS Task Execution Role"
+  value       = module.iam.ecs_task_execution_role_arn
+}
+
+output "ecs_task_role_arn" {
+  description = "ARN of the ECS Task Role"
+  value       = module.iam.ecs_task_role_arn
+}
+
+# ==========================================
 # ECR Outputs
 # ==========================================
 output "ecr_repository_url" {

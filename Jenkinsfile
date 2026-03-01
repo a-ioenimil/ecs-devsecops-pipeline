@@ -151,7 +151,14 @@ pipeline {
                     
                     // Inject the GitHub Username and PAT into the shell environment securely
                     withCredentials([usernamePassword(credentialsId: 'deploy-git-credentials-id', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PAT')]) { 
-                        sh '''
+                        // Fetch Source Git context for a professional commit message
+                        def rawCommitMsg = sh(script: "git log -1 --pretty=%B", returnStdout: true).trim()
+                        // Ensure we escape double quotes for the shell command below, taking only the first line of the original commit msg
+                        def commitHeader = rawCommitMsg.split('\n')[0].replace('\"', '\\\"') 
+                        def commitHash = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                        def authorName = sh(script: "git show -s --format='%an'", returnStdout: true).trim()
+
+                        sh """
                             # Strip the 'https://' from the URL so we can inject the credentials
                             REPO_DOMAIN_PATH=$(echo $DEPLOY_GIT_REPO | sed 's~https://~~')
                             AUTH_REPO_URL="https://${GIT_USER}:${GIT_PAT}@${REPO_DOMAIN_PATH}"
@@ -168,11 +175,25 @@ pipeline {
                             
                             # Add both the template (if changed) and the newly generated taskdef.json
                             git add appspec.yaml taskdef.template.json taskdef.json
-                            git commit -m "Deploy Build: ${BUILD_NUMBER}" || echo "No changes to commit"
+                            
+                            # Construct professional commit message
+                            COMMIT_MESSAGE="build(deploy): update ECS task definition for AuraScale
+                            
+                            Triggered by CI Pipeline Build #${BUILD_NUMBER}
+                            
+                            Source Control Details:
+                            - Commit Hash: ${commitHash}
+                            - Commit Message: ${commitHeader}
+                            - Author: ${authorName}
+                            
+                            Jenkins Job: ${env.BUILD_URL}
+                            Docker Image: ${IMAGE_URI}"
+                            
+                            git commit -m "\$COMMIT_MESSAGE" || echo "No changes to commit"
                             
                             # Push directly to main using the authenticated URL
                             git push $AUTH_REPO_URL main
-                        '''
+                        """
                     }
                 }
             }
