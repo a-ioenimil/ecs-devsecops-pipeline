@@ -66,8 +66,8 @@ pipeline {
                     // 2. Grant open write permissions so the container can save the files
                     sh "chmod 777 ${WORKSPACE}/reports"
                     
-                    // 3. Run the scan (targeting /src/backend and outputting to /src/reports)
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/src owasp/dependency-check --scan /src/backend --format HTML --format JSON --out /src/reports", returnStatus: true)
+                    // 3. Direct mount the backend to /src, and reports to /report
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}/backend:/src -v ${WORKSPACE}/reports:/report owasp/dependency-check:latest --scan /src --format HTML --format JSON --out /report", returnStatus: true)
                     
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
