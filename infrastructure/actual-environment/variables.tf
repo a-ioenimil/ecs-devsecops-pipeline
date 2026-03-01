@@ -1,0 +1,37 @@
+variable "aws_region" {
+  type        = string
+  description = "AWS region to deploy resources"
+  default     = "eu-west-1"
+}
+
+variable "app_name" {
+  type        = string
+  description = "Application name used across all modules for resource naming"
+  default     = "fastapi-app"
+}
+
+variable "vpc_id" {
+  type        = string
+  description = "VPC ID where networking resources will be deployed"
+}
+
+variable "subnets" {
+  type        = list(string)
+  description = "Subnet IDs for ALB and ECS tasks"
+}
+
+variable "container_port" {
+  type        = number
+  description = "Port the FastAPI container listens on"
+  default     = 8000
+}
+
+variable "codepipeline_bucket_name" {
+  type        = string
+  description = "Globally unique S3 bucket name for CodePipeline artifacts"
+}
+
+variable "deploy_manifests_repo_name" {
+  type        = string
+  description = "CodeCommit repository name containing the deployment manifests"
+}
