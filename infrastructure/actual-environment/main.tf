@@ -18,13 +18,11 @@ module "ecr" {
 
 # ==========================================
 # MODULE: NETWORKING
-# ALB, Listeners (Prod/Test), Target Groups (Blue/Green), ECS SG
+# VPC, ALB, Listeners (Prod/Test), Target Groups (Blue/Green), ECS SG
 # ==========================================
 module "networking" {
   source         = "./modules/networking"
   app_name       = var.app_name
-  vpc_id         = var.vpc_id
-  public_subnets = var.subnets
   container_port = var.container_port
 }
 
@@ -41,10 +39,10 @@ module "ecs" {
   execution_role_arn    = module.iam.ecs_task_execution_role_arn
   task_role_arn         = module.iam.ecs_task_role_arn
   container_port        = var.container_port
-  private_subnets       = var.subnets
+  private_subnets       = module.networking.private_subnets
   ecs_security_group_id = module.networking.ecs_tasks_security_group_id
   blue_target_group_arn = module.networking.blue_target_group_arn
-  assign_public_ip      = true # Set to false if using private subnets with NAT GW
+  assign_public_ip      = false # Private subnets with NAT Gateway
 }
 
 # ==========================================

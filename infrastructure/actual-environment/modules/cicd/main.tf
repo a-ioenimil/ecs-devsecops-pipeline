@@ -15,6 +15,11 @@ resource "aws_codedeploy_deployment_group" "this" {
   deployment_config_name = "CodeDeployDefault.ECSAllAtOnce" # Use ECSLinear10PercentEvery1Minutes for safer rollouts
   service_role_arn       = var.codedeploy_role_arn
 
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "BLUE_GREEN"
+  }
+
   blue_green_deployment_config {
     deployment_ready_option {
       action_on_timeout = "CONTINUE_DEPLOYMENT"

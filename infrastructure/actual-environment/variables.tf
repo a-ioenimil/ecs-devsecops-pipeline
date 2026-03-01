@@ -4,20 +4,15 @@ variable "aws_region" {
   default     = "eu-west-1"
 }
 
+variable "state_bucket_name" {
+  type        = string
+  description = "Globally unique S3 bucket name for Terraform state"
+}
+
 variable "app_name" {
   type        = string
   description = "Application name used across all modules for resource naming"
   default     = "fastapi-app"
-}
-
-variable "vpc_id" {
-  type        = string
-  description = "VPC ID where networking resources will be deployed"
-}
-
-variable "subnets" {
-  type        = list(string)
-  description = "Subnet IDs for ALB and ECS tasks"
 }
 
 variable "container_port" {

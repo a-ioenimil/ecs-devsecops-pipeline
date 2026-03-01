@@ -1,4 +1,28 @@
 # ==========================================
+# VPC (using public AWS module)
+# ==========================================
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+
+  name = "${var.app_name}-vpc"
+  cidr = var.vpc_cidr
+
+  azs             = var.availability_zones
+  public_subnets  = var.public_subnet_cidrs
+  private_subnets = var.private_subnet_cidrs
+
+  enable_nat_gateway   = true
+  single_nat_gateway   = true # Use one NAT GW to save costs in a lab
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name = "${var.app_name}-vpc"
+  }
+}
+
+# ==========================================
 # APPLICATION LOAD BALANCER & TARGET GROUPS
 # ==========================================
 module "alb" {
@@ -6,8 +30,8 @@ module "alb" {
   version = "~> 9.0"
 
   name    = "${var.app_name}-alb"
-  vpc_id  = var.vpc_id
-  subnets = var.public_subnets
+  vpc_id  = module.vpc.vpc_id
+  subnets = module.vpc.public_subnets
 
   # Security Group allowing HTTP traffic on Prod (80) and Test (8080) ports
   security_group_ingress_rules = {
@@ -74,7 +98,7 @@ module "alb" {
 resource "aws_security_group" "ecs_tasks" {
   name        = "${var.app_name}-ecs-tasks-sg"
   description = "Allow inbound traffic from ALB to ECS tasks"
-  vpc_id      = var.vpc_id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     protocol        = "tcp"
