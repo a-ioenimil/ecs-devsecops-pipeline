@@ -61,10 +61,10 @@ pipeline {
                     echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
                     
                     // Run 1: Generate the SCA Report (saves to workspace)
-                    sh "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --format json --output /workspace/sca-report.json /workspace/backend"
+                    sh "docker run --rm -v ${WORKSPACE}:/path aquasec/trivy fs --format json --output /path/sca-report.json /path/backend"
                     
                     // Run 2: Enforce the Quality Gate (fails build if vulnerable)
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace/backend", returnStatus: true)
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/path aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /path/backend", returnStatus: true)
                     
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
