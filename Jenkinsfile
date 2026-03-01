@@ -18,6 +18,10 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                // Capture the Jenkins agent container ID for DooD --volumes-from usage
+                script {
+                    env.AGENT_CONTAINER_ID = sh(script: 'cat /etc/hostname', returnStdout: true).trim()
+                }
             }
         }
 
@@ -25,8 +29,8 @@ pipeline {
             steps {
                 script {
                     echo "Running Gitleaks to detect hardcoded secrets..."
-                    // Docker Out Of Docker (DooD) execution - Updated with double quotes and --no-git
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/path zricethezav/gitleaks:latest detect --source=/path --no-git -v", returnStatus: true)
+                    // DooD: Use --volumes-from to share the agent container's filesystem
+                    def status = sh(script: "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} zricethezav/gitleaks:latest detect --source=${WORKSPACE} --no-git -v", returnStatus: true)
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('Gitleaks detected secrets! Failing the pipeline.')
@@ -59,11 +63,13 @@ pipeline {
             steps {
                 script {
                     echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
-                    // Run 1: Generate the SCA report (mounts workspace so output lands in WORKSPACE)
-                    sh "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --format json --output /workspace/sca-report.json /workspace/backend"
+                    // DooD: Use --volumes-from to share the agent container's filesystem
+
+                    // Run 1: Generate the SCA report
+                    sh "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} aquasec/trivy fs --format json --output ${WORKSPACE}/sca-report.json ${WORKSPACE}/backend"
 
                     // Run 2: Enforce the Quality Gate
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/workspace aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace/backend", returnStatus: true)
+                    def status = sh(script: "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL ${WORKSPACE}/backend", returnStatus: true)
 
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
@@ -91,12 +97,13 @@ pipeline {
             steps {
                 script {
                     echo "Generating Trivy Report..."
+                    // DooD: --volumes-from inherits both the workspace AND the docker.sock mount
                     // Run 1: Save the report (doesn't fail the build)
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${WORKSPACE}:/workspace aquasec/trivy image --format json --output /workspace/trivy-report.json ${IMAGE_URI}"
+                    sh "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} aquasec/trivy image --format json --output ${WORKSPACE}/trivy-report.json ${IMAGE_URI}"
 
                     echo "Enforcing Trivy Quality Gate..."
                     // Run 2: Enforce the gate (fails the build if vulnerable)
-                    def status = sh(script: "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_URI}", returnStatus: true)
+                    def status = sh(script: "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} aquasec/trivy image --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_URI}", returnStatus: true)
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('Trivy detected HIGH or CRITICAL vulnerabilities in the image! Failing the pipeline.')
@@ -105,7 +112,6 @@ pipeline {
             }
             post {
                 always {
-                    // Archive the JSON report for the lab deliverables
                     archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
                 }
             }
@@ -115,7 +121,8 @@ pipeline {
             steps {
                 script {
                     echo "Generating SBOM with Syft..."
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft ${IMAGE_URI} -o cyclonedx-json > sbom.json"
+                    // DooD: --volumes-from inherits the docker.sock mount from the agent container
+                    sh "docker run --rm --volumes-from ${AGENT_CONTAINER_ID} -w ${WORKSPACE} anchore/syft ${IMAGE_URI} -o cyclonedx-json > ${WORKSPACE}/sbom.json"
                 }
             }
             post {
