@@ -25,8 +25,8 @@ pipeline {
             steps {
                 script {
                     echo "Running Gitleaks to detect hardcoded secrets..."
-                    // Docker Out Of Docker (DooD) execution
-                    def status = sh(script: 'docker run --rm -v ${WORKSPACE}:/path zricethezav/gitleaks:latest detect --source="/path" -v', returnStatus: true)
+                    // Docker Out Of Docker (DooD) execution - Updated with double quotes and --no-git
+                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/path zricethezav/gitleaks:latest detect --source=/path --no-git -v", returnStatus: true)
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
                         error('Gitleaks detected secrets! Failing the pipeline.')
@@ -39,15 +39,17 @@ pipeline {
             steps {
                 script {
                     echo "Running SonarCloud SAST..."
-                    def scannerHome = tool 'sonar-scanner-8'
+                    // Updated to match your Jenkins UI tool name
+                    def scannerHome = tool 'sonar-scanner'
 
                     withSonarQubeEnv('SonarCloud') { 
-                        sh '''
+                        // Updated to triple-double quotes (""") so Groovy actually reads ${scannerHome}
+                        sh """
                             ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.organization=${SONAR_ORGANIZATION} \
                             -Dsonar.sources=/backend/src
-                        '''
+                        """
                     }
                 }
             }
