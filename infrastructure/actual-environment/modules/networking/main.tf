@@ -81,6 +81,18 @@ module "alb" {
       port              = var.container_port
       target_type       = "ip"
       create_attachment = false
+
+      health_check = {
+        enabled             = true
+        path                = "/"
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+        timeout             = 5
+        interval            = 10
+        matcher             = "200"
+      }
     }
     green = {
       name_prefix       = "green-"
@@ -88,6 +100,18 @@ module "alb" {
       port              = var.container_port
       target_type       = "ip"
       create_attachment = false
+
+      health_check = {
+        enabled             = true
+        path                = "/"
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+        timeout             = 5
+        interval            = 10
+        matcher             = "200"
+      }
     }
   }
 }

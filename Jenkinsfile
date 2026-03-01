@@ -140,6 +140,10 @@ pipeline {
                     
                     echo "Pushing Image to ECR..."
                     sh "docker push ${IMAGE_URI}"
+
+                    echo "Tagging and pushing as :latest for ECS baseline..."
+                    sh "docker tag ${IMAGE_URI} ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:latest"
+                    sh "docker push ${ECR_REGISTRY}/${IMAGE_REPO_NAME}:latest"
                 }
             }
         }
