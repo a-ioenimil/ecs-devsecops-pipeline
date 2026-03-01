@@ -48,7 +48,7 @@ pipeline {
                             ${scannerHome}/bin/sonar-scanner \
                             -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                             -Dsonar.organization=${SONAR_ORGANIZATION} \
-                            -Dsonar.sources=/backend/src
+                            -Dsonar.sources=./backend/src
                         """
                     }
                 }
@@ -78,7 +78,7 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker Image..."
-                    sh "docker build -t ${IMAGE_URI} ."
+                    sh "docker build -t ${IMAGE_URI} ./backend"
                 }
             }
         }
