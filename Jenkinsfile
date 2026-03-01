@@ -59,7 +59,8 @@ pipeline {
             steps {
                 script {
                     echo "Installing Trivy CLI locally..."
-                    // 1. Download Trivy directly into a 'bin' folder in the workspace
+                    // 1. Ensure the bin directory exists, then download Trivy into it
+                    sh "mkdir -p ${WORKSPACE}/bin"
                     sh "curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${WORKSPACE}/bin"
                     
                     echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
