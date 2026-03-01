@@ -66,6 +66,15 @@ resource "aws_s3_bucket" "codepipeline_artifacts" {
 }
 
 # ==========================================
+# CODESTAR CONNECTION (For GitHub)
+# NOTE: Must be manually authorized in the AWS Console after creation
+# ==========================================
+resource "aws_codestarconnections_connection" "github" {
+  name          = "${var.app_name}-github"
+  provider_type = "GitHub"
+}
+
+# ==========================================
 # CODEPIPELINE
 # Listens on the deploy manifests repo and triggers CodeDeploy
 # ==========================================
@@ -85,13 +94,14 @@ resource "aws_codepipeline" "this" {
       name             = "Source"
       category         = "Source"
       owner            = "AWS"
-      provider         = "CodeCommit" # Or CodeStarSourceConnection for GitHub
+      provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["source_output"]
 
       configuration = {
-        RepositoryName = var.deploy_manifests_repo_name
-        BranchName     = "main"
+        ConnectionArn    = aws_codestarconnections_connection.github.arn
+        FullRepositoryId = var.deploy_manifests_repo_name
+        BranchName       = "main"
       }
     }
   }

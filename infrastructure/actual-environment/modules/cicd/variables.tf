@@ -50,5 +50,5 @@ variable "codepipeline_bucket_name" {
 
 variable "deploy_manifests_repo_name" {
   type        = string
-  description = "Name of the CodeCommit/GitHub repository containing deploy manifests"
+  description = "GitHub full repository ID containing deploy manifests (e.g. username/repo)"
 }
