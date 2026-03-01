@@ -58,13 +58,16 @@ pipeline {
         stage('Quality Gauntlet: SCA (Trivy FS)') {
             steps {
                 script {
+                    echo "Installing Trivy CLI locally..."
+                    // 1. Download Trivy directly into a 'bin' folder in the workspace
+                    sh "curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${WORKSPACE}/bin"
+                    
                     echo "Running Trivy Filesystem SCA Scan on Python dependencies..."
+                    // 2. Run 1: Generate the SCA Report
+                    sh "${WORKSPACE}/bin/trivy fs --format json --output ${WORKSPACE}/sca-report.json ${WORKSPACE}/backend"
                     
-                    // Run 1: Generate the SCA Report (saves to workspace)
-                    sh "docker run --rm -v ${WORKSPACE}:/path aquasec/trivy fs --format json --output /path/sca-report.json /path/backend"
-                    
-                    // Run 2: Enforce the Quality Gate (fails build if vulnerable)
-                    def status = sh(script: "docker run --rm -v ${WORKSPACE}:/path aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /path/backend", returnStatus: true)
+                    // 3. Run 2: Enforce the Quality Gate
+                    def status = sh(script: "${WORKSPACE}/bin/trivy fs --exit-code 1 --severity HIGH,CRITICAL ${WORKSPACE}/backend", returnStatus: true)
                     
                     if (status != 0) {
                         currentBuild.result = 'FAILURE'
